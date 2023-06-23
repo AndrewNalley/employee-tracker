@@ -23,8 +23,9 @@ CREATE TABLE employee (
     first_name VARCHAR(30),
     last_name VARCHAR(30),
     role_id INT NOT NULL,
+    date_added DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     INDEX role_id (role_id),
-    CONSTRAINT fk_role FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE
--- manager info here
-    
+    CONSTRAINT fk_role FOREIGN KEY (role_id) REFERENCES role(id),
+    manager_id INT,
+    CONSTRAINT fk_manager FOREIGN KEY (manager_id) REFERENCES employee(id)
     );

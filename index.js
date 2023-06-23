@@ -1,7 +1,7 @@
 const inquirer = require('inquirer');
-const connection = require('./db/connection')
+const connection = require('./server')
 
-function init() {
+function inquirerInit() {
     inquirer
         .prompt([
             {
@@ -31,4 +31,4 @@ function viewAllRoles() {
         .then(() => init())
 }
 
-init()
+inquirerInit();
