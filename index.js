@@ -63,8 +63,8 @@ db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALU
             success: true,
             body: req.body
         });
-    })
-});
+    });
+
 
 // update employee 
 
