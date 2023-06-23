@@ -1,116 +1,87 @@
 const inquirer = require('inquirer');
 const db = require('./server')
 
-function inquirerInit() {
+const options = {
+
+
+    "View all departments": () => {
+        db.promise().query("SELECT * FROM department")
+    },
+
+    "View all roles": () => {
+        db.promise().query("SELECT * FROM role")
+    },
+
+    "View all employees": () => {
+        db.promise().query("SELECT * FROM employee")
+    },
+
+    "Add a department": () => {
+        inquirer.prompt([
+            {
+                name: "departmentName",
+                type: "input",
+                message: "What is the name of the department?"
+            }
+        ]).then(answer => {
+            db.promise().query("INSERT INTO department (name) VALUES (?)", [answer.departmentName], (err, res) => {
+                if (err) throw err;
+                console.log("Department added!");
+            })
+                .then(() => init())
+                .catch(err => console.log(err))
+        });
+    },
+
+
+    "Add a role ": () => {
+        // prompt role, salary, department
+        db.promise().query("SELECT * FROM role")
+        // add the role to table
+    },
+    "Add an employee": () => {
+        // prompt employee first name, last name, role, manager (if applicable)
+        db.promise().query("SELECT * FROM employee")
+        // add the employee to table
+    },
+    // option 7 - update an employee role
+    // select an employee to update
+    db.promise().query("SELECT * FROM employee")
+    // update role (and manager if applicable)
+}
+
+function init() {
     inquirer
         .prompt([
             {
-                message: "What would you like to do?",
-                name: "choice",
+                name: "action",
                 type: "list",
-                choices: ["View all departments", "View all roles", "View all roles", "Quit"]
+                message: "What would you like to do?",
+                choices: [
+                    "View all departments",
+                    "View all roles",
+                    "View all employees",
+                    "Add a department",
+                    "Add a role",
+                    "Add an employee",
+                    "Update an employee role",
+                    "Quit"
+                ]
             }
-        ]).then(answers => {
-            switch (answers) {
-                case "view all departments":
-                    break;
-                case "View all roles":
-                    viewAllRoles();
-                    break;
-                case "quit":
-                    console.log("Goodbye!")
-                    process.exit(0)
+        ])
+        .then(answer => {
+            console.log(answer);
+            const action = options[answer.action];
+            if (action) {
+                action();
+            } else {
+                console.log("Please try again!");
+                init();
             }
-        })
-}
-function viewAllRoles() {
-    db.promise().query("SELECT * FROM role")
-        .then(data => {
-            console.table(data)
-        })
-        .then(() => init())
-}
+        }).catch(err => console.log(err))
+};
 
 
 
-db.query(`SELECT * FROM employee`, (err, result) => {
-    if (err) {
-        res.status(500).json({
-            success: false,
-            error: err
-        })
-    }
-    res.json({
-        success: true,
-        body: result
-    });
-})
 
-
-// add new employee 
-
-const { first_name, last_name, role_id } = req.body;
-db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`,
-    [first_name, last_name, role_id, manager_id],
-    (err, result) => {
-        if (err) {
-            res.status(500).json({
-                success: false,
-                error: err
-            })
-        }
-        res.status(201).json({
-            success: true,
-            body: req.body
-        });
-    });
-
-
-// update employee 
-
-db.query(`UPDATE employee SET first_name =?, last_name =?, role_id =? WHERE id =?`, [req.body.first_name, req.body.last_name, req.body], (err, result) => {
-    if (err) {
-        res.status(400).json({
-            success: false,
-            error: err
-        })
-    } else if (!result.affectedRows) {
-        res.status(404).json({
-            success: false,
-            error: "Employee not found"
-        })
-    } else {
-        res.json({
-            success: true,
-            data: req.body,
-            changes: result.affectedRows
-        })
-    }
-});
-
-
-// delete employee 
-
-db.query(`DELETE FROM employee WHERE id =?`, [req.params.id], (err, result) => {
-    if (err) {
-        res.status(400).json({
-            success: false,
-            error: err
-        })
-    } else if (!result.affectedRows) {
-        res.status(404).json({
-            success: false,
-            error: "Employee not found"
-        })
-    } else {
-        res.json({
-            success: true,
-            message: "Employee deleted",
-            changes: result.affectedRows
-        })
-    }
-});
-
-
-
-inquirerInit();
+init();
