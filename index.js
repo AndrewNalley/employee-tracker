@@ -2,20 +2,24 @@ const inquirer = require('inquirer');
 const db = require('./server')
 
 const options = {
-
-
     "View all departments": () => {
-        db.promise().query("SELECT * FROM department")
+        db.promise()
+            .query("SELECT * FROM department ORDER BY id")
+            .then(([rows]) => {
+                console.table(rows);
+                console.log("\n");
+                backToMainMenu();
+            })
+            .catch((error) => {
+                console.error(error);
+            });
     },
-
     "View all roles": () => {
         db.promise().query("SELECT * FROM role")
     },
-
     "View all employees": () => {
         db.promise().query("SELECT * FROM employee")
     },
-
     "Add a department": () => {
         inquirer.prompt([
             {
@@ -32,8 +36,6 @@ const options = {
                 .catch(err => console.log(err))
         });
     },
-
-
     "Add a role ": () => {
         // prompt role, salary, department
         db.promise().query("SELECT * FROM role")
@@ -45,10 +47,25 @@ const options = {
         // add the employee to table
     },
     // option 7 - update an employee role
-    // select an employee to update
-    db.promise().query("SELECT * FROM employee")
-    // update role (and manager if applicable)
-}
+    "Update an employee role": () => {
+        // select an employee to update
+        db.promise().query("SELECT * FROM employee")
+        // update role (and manager if applicable)
+    },
+    "Quit": () => {
+        inquirer
+            .prompt([
+                {
+                    name: "confirmExit",
+                    type: "confirm",
+                    message: "Are you sure you want to exit?",
+                },
+            ])
+            .then((answer) => {
+                if (answer.moreQuery) return process.exit();
+            });
+    }
+};
 
 function init() {
     inquirer
@@ -81,7 +98,19 @@ function init() {
         }).catch(err => console.log(err))
 };
 
+function backToMainMenu() {
+    inquirer
+        .prompt([
+            {
+                name: "Menu",
+                type: "confirm",
+                message: "Would you like to go back to the main menu?",
+            }
+        ])
+        .then(answer => {
+            if (answer.Menu) return init();
+        });
+};
 
-
-
+// start the app
 init();
