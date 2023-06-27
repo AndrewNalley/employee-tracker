@@ -1,12 +1,12 @@
-INSERT INTO department (id, name)
-VALUES  (1, 'Administration'),
-        (2, 'Facilities'),
-        (3, 'IT'),
-        (4, 'Finance'),
-        (5, 'Legal'),
-        (6, 'Marketing'),
-        (7, 'Sales'),
-        (8, 'Human Resources');
+INSERT INTO department (name)
+VALUES  ('Administration'),
+        ('Facilities'),
+        ('IT'),
+        ('Finance'),
+        ('Legal'),
+        ('Marketing'),
+        ('Sales'),
+        ('Human Resources');
 
 INSERT INTO role (id, title, salary, department_id)
 VALUES  (1, 'Chief Executive Officer', 300000, 1),

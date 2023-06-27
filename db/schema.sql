@@ -4,7 +4,7 @@ CREATE DATABASE employee_db;
 USE employee_db;
 
 CREATE TABLE department (
-    id INT NOT NULL PRIMARY KEY,
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(30) UNIQUE NOT NULL
 );
 
@@ -13,6 +13,7 @@ CREATE TABLE role (
     title VARCHAR(30) UNIQUE NOT NULL,
     salary DECIMAL UNSIGNED NOT NULL,
     department_id INT NOT NULL,
+    date_added DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     INDEX dep_ind (department_id),
     CONSTRAINT fk_department FOREIGN KEY (department_id) REFERENCES department (id)
     ON DELETE CASCADE
