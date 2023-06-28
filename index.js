@@ -255,7 +255,7 @@ const options = {
         db.promise()
           // add the employee to table
           .query(
-            "INSERT INTO employee (first_name, last_name, role_id, manager_id) VaLUES (?,?,?,?)",
+            "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)",
             [answers.firstName, answers.lastName, answers.role, answers.manager]
           )
           .then((response) => {
@@ -302,7 +302,7 @@ const options = {
       .then((answers) => {
         db.promise()
           .query(
-            `UPDATE employee SET role_id = ? WHERE firstName = ? AND lastName = ?`,
+            `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`,
             [answers.newRole, answers.firstName, answers.lastName]
           )
           .then(() => {
@@ -384,6 +384,51 @@ const options = {
   },
 };
 
+function welcomeBanner() {
+  console.log(`
+     __   __   __   __   __   __   __   __   __   __   __   __   __   __   __   ___
+   / ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___ \\
+   \\ __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / ___ /
+  ^                                                                                  ^
+| | |                                                                              | | |
+ \\ \\        EEEEEEE MM    MM PPPPPP  LL       OOOOO  YY   YY EEEEEEE EEEEEEE        \\ \\
+| | |       EE      MMM  MMM PP   PP LL      OO   OO YY   YY EE      EE            | | |
+ \\ \\        EEEEE   MM MM MM PPPPPP  LL      OO   OO  YYYYY  EEEEE   EEEEE          \\ \\
+| | |       EE      MM    MM PP      LL      OO   OO   YYY   EE      EE            | | |
+ \\ \\        EEEEEEE MM    MM PP      LLLLLLL  OOOO0    YYY   EEEEEEE EEEEEEE        \\ \\
+| | |                                                                              | | |
+ \\ \\            TTTTTTT RRRRRR    AAA    CCCCC  KK  KK EEEEEEE RRRRRR               \\ \\
+| | |             TTT   RR   RR  AAAAA  CC    C KK KK  EE      RR   RR             | | |
+ \\ \\              TTT   RRRRRR  AA   AA CC      KKKK   EEEEE   RRRRRR               \\ \\
+| | |             TTT   RR  RR  AAAAAAA CC    C KK KK  EE      RR  RR              | | |
+ \\ \\              TTT   RR   RR AA   AA  CCCCC  KK  KK EEEEEEE RR   RR              \\ \\
+| | |                                                                              | | |
+ \\ /                                                                                \\ /
+  V  __   __   __   __   __   __   __   __   __   __   __   __   __   __   __   ___  V
+   / ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___/ ___ \\
+   \\ __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / __ / ___ /
+
+
+                         __   __   __   __   __   __   __  ___
+                       / ___/ ___/ ___/ ___/ ___/ ___/ ___/ __ \\
+                       \\ __ / __ / __ / __ / __ / __ / __ / __ /
+                      ^                                         ^
+                    | | |                                     | | |
+                     \\ \\                                       \\ \\
+                    | | |               WELCOME!              | | |
+                     \\ \\                                       \\ \\
+                    | | |            PLEASE SELECT            | | |
+                     \\ \\             OPTIONS BELOW             \\ \\
+                    | | |                                     | | |
+                     \\ \\                                       \\ \\
+                    | | |                                     | | |
+                     \\ /                                       \\ /
+                      V  __   __   __   __   __   __   __  ___  V
+                       / ___/ ___/ ___/ ___/ ___/ ___/ ___/ __ \\
+                       \\ __ / __ / __ / __ / __ / __ / __ / __ /
+`)
+};
+
 // start the app
 function init() {
   inquirer
@@ -406,13 +451,12 @@ function init() {
       },
     ])
     .then((answer) => {
-      console.log(answer);
+      console.log("\n 👉 Action selected: ", answer);
       const action = options[answer.action];
       if (action) {
         action();
       } else {
-        console.log("Please try again!");
-        init();
+        console.log("\n ⛔️ Please try again! ⛔️ \n");
       }
     })
     .catch((err) => console.log(err));
@@ -433,4 +477,5 @@ function backToMainMenu() {
 }
 
 // start the app
+welcomeBanner();
 init();
