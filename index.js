@@ -1,68 +1,80 @@
 const inquirer = require("inquirer");
 const db = require("./server");
 
-// If user adds to a department, this check will make sure it exists
-const validateDepartment = (input) => {
-  return db
-    .promise()
-    .query("SELECT * FROM department ORDER BY id")
+// Below 3 functions allow user to easily find information by name, not ID, then return ID for data manipulation
+const getDepartmentNames = () => {
+  return db.promise()
+    .query("SELECT name FROM department")
     .then(([rows]) => {
-      const departmentIds = rows.map((row) => row.id);
-
-      if (!departmentIds.includes(input)) {
-        return (
-          console.log(
-            "\n ❌ Invalid department ID. Unable to add Department. ❌ \n"
-          ),
-          init()
-        );
-      }
-
-      return true;
+      return rows.map((row) => row.name);
     })
     .catch((error) => {
-      console.log("Error occurred while fetching departments:", error);
-      throw new Error("An error occurred. Please try again.");
+      console.error("An error occurred while retrieving department names:", error);
+      return [];
     });
 };
-
-const validateManager = (input) => {
-  return db
-    .promise()
-    .query("SELECT * FROM employee ORDER BY id")
+const getDepartmentId = (input) => {
+  return db.promise()
+    .query("SELECT id FROM department WHERE name = ?", [input])
     .then(([rows]) => {
-      const managerIDs = rows.map((row) => row.id);
-
-      if (input === null || managerIDs.includes(input)) {
-        return true;
+      if (rows.length > 0) {
+        return rows[0].id;
       } else {
-        console.log("\n ❌ Invalid Manager ID. Unable to add Employee. ❌ \n");
-        return init();
+        return null;
       }
     })
     .catch((error) => {
-      console.log("Error occurred while fetching employee data:", error);
-      throw new Error("An error occurred. Please try again.");
+      console.error("An error occurred while retrieving department ID:", error);
+      return null;
     });
 };
-
-const validateRole = (input) => {
-  return db
-    .promise()
-    .query("SELECT * FROM role ORDER BY id")
+const getRoleNames = () => {
+  return db.promise()
+    .query("SELECT title FROM role")
     .then(([rows]) => {
-      const roleIDs = rows.map((row) => row.id);;
-
-      if (input === null || roleIDs.includes(input)) {
-        return true;
+      return rows.map((row) => row.title);
+    })
+    .catch((error) => {
+      console.error("An error occurred while retrieving role titles:", error);
+      return [];
+    })
+};
+const getRoleId = (input) => {
+  return db.promise()
+    .query("SELECT id FROM role WHERE title = ?", [input])
+    .then(([rows]) => {
+      if (rows.length > 0) {
+        return rows[0].id;
       } else {
-        console.log("\n ❌ Invalid Role ID. Unable to add. ❌ \n");
-        return init();
+        return null;
       }
     })
     .catch((error) => {
-      console.log("Error occurred while fetching role data:", error);
-      throw new Error("An error occurred. Please try again.");
+      console.error("An error occurred while retrieving the role ID:", error);
+      return null;
+    });
+};
+const getManagerNames = () => {
+  return db.promise()
+    .query("SELECT first_name, last_name FROM employee WHERE manager_id IS NULL")
+    .then(([rows]) => {
+      const managerNames = rows.map((row) => row.name);
+      return managerNames;
+    })
+    .catch((error) => {
+      console.error("An error occurred while retrieving manager names:", error);
+      return [];
+    });
+};
+const getManagerId = (firstName, lastName) => {
+  return db.promise()
+    .query("SELECT id FROM employee WHERE first_name = ? AND last_name = ?", [firstName, lastName])
+    .then(([rows]) => {
+      if (rows.length > 0) {
+        return rows[0].id;
+      } else {
+        return null;
+      }
     });
 };
 
@@ -156,10 +168,11 @@ const options = {
           });
       });
   },
-  "Add a role": () => {
-    // prompt role, salary, department
-    inquirer
-      .prompt([
+  "Add a role": async () => {
+    try {
+      // prompt role, salary, department
+      const departmentNames = await getDepartmentNames();
+      const answers = await inquirer.prompt([
         {
           name: "roleTitle",
           type: "input",
@@ -172,47 +185,40 @@ const options = {
         },
         {
           name: "roleDepartment",
-          type: "number",
-          message:
-            "What department does this role belong to? Please enter the ID of the department.",
-          // if not a number input, or if the user hits enter, returns null
-          filter: (input) => {
-            if (isNaN(input)) {
-              return null;
-            }
-            return input;
-          },
-          validate: validateDepartment,
+          type: "list",
+          message: "In what department does this role belong?",
+          choices: departmentNames,
         },
-      ])
-      .then((answers) => {
-        db.promise()
-          .query(
-            "INSERT INTO role (title, salary, department_id) VALUES (?,?,?)",
-            [answers.roleTitle, answers.roleSalary, answers.roleDepartment]
-          )
-          .then((response) => {
-            console.log(
-              "\n 💥 Role added! Role ID:",
-              response[0].insertId,
-              " 💥 \n"
-            );
-            backToMainMenu();
-          })
-          .catch((error) => {
-            console.error(
-              "An error occurred while adding the role:",
-              error
-            );
-            console.log("Failed to add the role. Please try again.");
-            backToMainMenu();
-          });
-      });
+      ]);
+
+      const departmentId = await getDepartmentId(answers.roleDepartment);
+
+      if (departmentId) {
+        const response = await db.promise().query(
+          "INSERT INTO role (title, salary, department_id) VALUES (?,?,?)",
+          [answers.roleTitle, answers.roleSalary, departmentId]
+        );
+
+        console.log(
+          "\n 💥 Role added! Role ID:",
+          response[0].insertId,
+          " 💥 \n"
+        );
+        backToMainMenu();
+      }
+    } catch (error) {
+      console.error("An error occurred while adding the role:", error);
+      console.log("Failed to add the role. Please try again.");
+      backToMainMenu();
+    }
   },
-  "Add an employee": () => {
-    // prompt employee first name, last name, role, manager (if applicable)
-    inquirer
-      .prompt([
+  "Add an employee": async () => {
+    try {
+      // prompt employee first name, last name, role, manager (if applicable)
+      const roleNames = await getRoleNames();
+      const managerNames = await getManagerNames();
+
+      const answers = await inquirer.prompt([
         {
           name: "firstName",
           type: "input",
@@ -225,144 +231,120 @@ const options = {
         },
         {
           name: "role",
-          type: "number",
-          message:
-            "What is the role of this employee? Please enter the role ID.",
-          filter: (input) => {
-            if (isNaN(input)) {
-              return null;
-            }
-            return input;
-          },
-          validate: validateRole,
+          type: "list",
+          message: "What is the role of this employee?",
+          choices: roleNames,
         },
         {
           name: "manager",
-          type: "number",
+          type: "list",
           message:
             "Finally, who is the employee's manager? If no manager, please hit enter.",
-          // if not a number input, or if the user hits enter, returns null
-          filter: (input) => {
-            if (isNaN(input)) {
-              return null;
-            }
-            return input;
-          },
-          validate: validateManager,
+          choices: managerNames,
         },
-      ])
-      .then((answers) => {
-        db.promise()
-          // add the employee to table
-          .query(
-            "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)",
-            [answers.firstName, answers.lastName, answers.role, answers.manager]
-          )
-          .then((response) => {
-            console.log("\n 💥 Employee added! Employee ID:", response[0].insertId, " 💥 \n");
-            backToMainMenu();
-          })
-          .catch((error) => {
-            console.error(
-              "An error occurred while adding the employee:",
-              error
-            );
-            console.log("Failed to add the employee. Please try again.");
-            backToMainMenu();
-          });
-      });
+      ]);
+
+      const roleId = getRoleId(answers.role);
+      const managerId = getManagerId(answers.manager);
+
+      if (roleId) {
+        const response = await db.promise().query(
+          "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)",
+          [answers.firstName, answers.lastName, roleId, managerId]
+        );
+
+        console.log(
+          "\n 💥 Employee added! Employee ID:",
+          response[0].insertId,
+          " 💥 \n"
+        );
+        backToMainMenu();
+      }
+    } catch (error) {
+      console.error("An error occurred while adding the employee:", error);
+      console.log("Failed to add the employee. Please try again.");
+      backToMainMenu();
+    }
   },
-  "Update an employee role": () => {
-    // select an employee to update
-    inquirer
-      .prompt([
+  "Update an employee role": async () => {
+    try {
+      // select an employee to update
+      const roleName = await getRoleNames();
+      const answers = await inquirer.prompt([
         {
           name: "firstName",
           type: "input",
-          message: "What is the first name of the employee?"
+          message: "What is the first name of the employee?",
         },
         {
           name: "lastName",
           type: "input",
-          message: "What is the last name of the employee?"
+          message: "What is the last name of the employee?",
         },
         {
           name: "newRole",
-          type: "number",
+          type: "list",
           message: "What is the new role for this employee?",
-          filter: (input) => {
-            if (isNaN(input)) {
-              return null;
-            }
-            return input;
-          },
-          validate: validateRole,
-        }
-      ])
-      .then((answers) => {
-        db.promise()
-          .query(
-            `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`,
-            [answers.newRole, answers.firstName, answers.lastName]
-          )
-          .then(() => {
-            console.log("\n ✅ Employee role updated successfully! ✅ \n");
-            backToMainMenu();
-          })
-          .catch((error) => {
-            console.error("An error occurred while updating the employee role:", error);
-            console.log("Failed to update the employee role. Please try again.");
-            backToMainMenu();
-          });
-      });
+          choices: roleName,
+        },
+      ]);
+
+      const roleId = await getRoleId(answers.newRole);
+
+      if (roleId) {
+        await db.promise().query(
+          `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`,
+          [roleId, answers.firstName, answers.lastName]
+        );
+
+        console.log("\n ✅ Employee role updated successfully! ✅ \n");
+        backToMainMenu();
+      }
+    } catch (error) {
+      console.error("An error occurred while updating the role:", error);
+      console.log("Failed to update role. Please try again.");
+      backToMainMenu();
+    }
   },
-  "Update employee's manager": () => {
-    inquirer
-      .prompt([
+  "Update employee's manager or change to manager status": async () => {
+    try {
+      const managerNames = await getManagerNames();
+      const answers = await inquirer.prompt([
         {
           name: "firstName",
           type: "input",
-          message: "Please enter the employee's first name."
+          message: "Please enter the employee's first name.",
         },
         {
           name: "lastName",
           type: "input",
-          message: "Please enter the employee's last name."
+          message: "Please enter the employee's last name.",
         },
         {
-          name: "managerID",
-          type: "number",
-          message: "Please enter the new manager ID.",
-          filter: (input) => {
-            if (isNaN(input)) {
-              return null;
-            }
-            return input;
-          },
-          validate: validateManager,
-        }
-      ])
-      .then((answers) => {
-        db.promise()
-          .query(
-            "UPDATE employee SET manager_id = ? WHERE first_name = ? AND last_name = ?",
-            [answers.managerID, answers.firstName, answers.lastName],
-          )
-          .then((response) => {
-            console.log(
-              "\n 💥 Manager updated! 💥 \n"
-            );
-            backToMainMenu();
-          })
-          .catch((error) => {
-            console.error(
-              "An error occurred while adding the role:",
-              error
-            );
-            console.log("Failed to add the role. Please try again.");
-            backToMainMenu();
-          });
-      });
+          name: "manager",
+          type: "list",
+          message:
+            "If the employee is a manager, please select null. Otherwise, choose a manager for this employee.",
+          choices: managerNames,
+        },
+      ]);
+
+      const managerId = await getManagerId(answers.manager);
+
+      if (managerId) {
+        await db.promise().query(
+          "UPDATE employee SET manager_id = ? WHERE first_name = ? AND last_name = ?",
+          [managerId, answers.firstName, answers.lastName]
+        );
+
+        console.log("\n 💥 Manager updated! 💥 \n");
+        backToMainMenu();
+      }
+    } catch (error) {
+      console.error("An error occurred while updating the manager:", error);
+      console.log("Failed to update the manager. Please try again.");
+      backToMainMenu();
+    }
   },
   "Quit": () => {
     inquirer
