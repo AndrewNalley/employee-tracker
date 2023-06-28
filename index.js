@@ -46,6 +46,26 @@ const validateManager = (input) => {
     });
 };
 
+const validateRole = (input) => {
+  return db
+    .promise()
+    .query("SELECT * FROM role ORDER BY id")
+    .then(([rows]) => {
+      const roleIDs = rows.map((row) => row.id);;
+
+      if (input === null || roleIDs.includes(input)) {
+        return true;
+      } else {
+        console.log("\n ❌ Invalid Role ID. Unable to add. ❌ \n");
+        return init();
+      }
+    })
+    .catch((error) => {
+      console.log("Error occurred while fetching role data:", error);
+      throw new Error("An error occurred. Please try again.");
+    });
+};
+
 const options = {
   "View all departments": () => {
     db.promise()
@@ -208,6 +228,13 @@ const options = {
           type: "number",
           message:
             "What is the role of this employee? Please enter the role ID.",
+          filter: (input) => {
+            if (isNaN(input)) {
+              return null;
+            }
+            return input;
+          },
+          validate: validateRole,
         },
         {
           name: "manager",
@@ -245,13 +272,99 @@ const options = {
           });
       });
   },
-  // option 7 - update an employee role
   "Update an employee role": () => {
     // select an employee to update
-    db.promise().query("SELECT * FROM employee WHERE first_name = '" + answers.firstName + "' AND last_name = '" + answers.lastName);
-    // update role (and manager if applicable)
+    inquirer
+      .prompt([
+        {
+          name: "firstName",
+          type: "input",
+          message: "What is the first name of the employee?"
+        },
+        {
+          name: "lastName",
+          type: "input",
+          message: "What is the last name of the employee?"
+        },
+        {
+          name: "newRole",
+          type: "number",
+          message: "What is the new role for this employee?",
+          filter: (input) => {
+            if (isNaN(input)) {
+              return null;
+            }
+            return input;
+          },
+          validate: validateRole,
+        }
+      ])
+      .then((answers) => {
+        db.promise()
+          .query(
+            `UPDATE employee SET role_id = ? WHERE firstName = ? AND lastName = ?`,
+            [answers.newRole, answers.firstName, answers.lastName]
+          )
+          .then(() => {
+            console.log("\n ✅ Employee role updated successfully! ✅ \n");
+            backToMainMenu();
+          })
+          .catch((error) => {
+            console.error("An error occurred while updating the employee role:", error);
+            console.log("Failed to update the employee role. Please try again.");
+            backToMainMenu();
+          });
+      });
   },
-  Quit: () => {
+  "Update employee's manager": () => {
+    inquirer
+      .prompt([
+        {
+          name: "firstName",
+          type: "input",
+          message: "Please enter the employee's first name."
+        },
+        {
+          name: "lastName",
+          type: "input",
+          message: "Please enter the employee's last name."
+        },
+        {
+          name: "managerID",
+          type: "number",
+          message: "Please enter the new manager ID.",
+          filter: (input) => {
+            if (isNaN(input)) {
+              return null;
+            }
+            return input;
+          },
+          validate: validateManager,
+        }
+      ])
+      .then((answers) => {
+        db.promise()
+          .query(
+            "UPDATE employee SET manager_id = ? WHERE first_name = ? AND last_name = ?",
+            [answers.managerID, answers.firstName, answers.lastName],
+          )
+          .then((response) => {
+            console.log(
+              "\n 💥 Manager updated! 💥 \n"
+            );
+            backToMainMenu();
+          })
+          .catch((error) => {
+            console.error(
+              "An error occurred while adding the role:",
+              error
+            );
+            console.log("Failed to add the role. Please try again.");
+            backToMainMenu();
+          });
+      });
+  },
+  "Quit": () => {
     inquirer
       .prompt([
         {
@@ -262,7 +375,12 @@ const options = {
       ])
       .then((answer) => {
         if (answer.confirmExit) return process.exit();
-      });
+      })
+      .catch((error) => {
+        console.error("An error occurred while trying to exit:", error);
+        console.log("Failed to exit. Returning to the Main Menu.");
+        backToMainMenu();
+      })
   },
 };
 
@@ -282,6 +400,7 @@ function init() {
           "Add a role",
           "Add an employee",
           "Update an employee role",
+          "Update employee's manager",
           "Quit",
         ],
       },
