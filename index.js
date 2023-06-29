@@ -1,7 +1,17 @@
 const inquirer = require("inquirer");
 const db = require("./server");
 
-// Below 3 functions allow user to easily find information by name, not ID, then return ID for data manipulation
+// Since an employee choices list could be unmanageably large, this checks if the entered employee name exists
+const employeeExists = async (firstName, lastName) => {
+  try {
+    const [rows] = await db.promise().query("SELECT * FROM employee WHERE first_name = ? AND last_name = ?", [firstName, lastName]);
+    return rows.length > 0;
+  } catch (error) {
+    console.error("An error occurred while checking if the employee exists:", error);
+    return false;
+  }
+};
+// Below functions allow user to easily find information by name, not ID, then return ID for data manipulation
 const getDepartmentNames = () => {
   return db.promise()
     .query("SELECT name FROM department")
@@ -10,6 +20,29 @@ const getDepartmentNames = () => {
     })
     .catch((error) => {
       console.error("An error occurred while retrieving department names:", error);
+      return [];
+    });
+};
+const getRoleNames = () => {
+  return db.promise()
+    .query("SELECT title FROM role")
+    .then(([rows]) => {
+      return rows.map((row) => row.title);
+    })
+    .catch((error) => {
+      console.error("An error occurred while retrieving role titles:", error);
+      return [];
+    })
+};
+const getManagerNames = () => {
+  return db.promise()
+    .query("SELECT first_name, last_name FROM employee WHERE manager_id IS NULL")
+    .then(([rows]) => {
+      const managers = rows.map((row) => `${row.first_name} ${row.last_name}`);
+      return managers;
+    })
+    .catch((error) => {
+      console.error("An error occurred while retrieving manager names:", error);
       return [];
     });
 };
@@ -28,17 +61,6 @@ const getDepartmentId = (input) => {
       return null;
     });
 };
-const getRoleNames = () => {
-  return db.promise()
-    .query("SELECT title FROM role")
-    .then(([rows]) => {
-      return rows.map((row) => row.title);
-    })
-    .catch((error) => {
-      console.error("An error occurred while retrieving role titles:", error);
-      return [];
-    })
-};
 const getRoleId = (input) => {
   return db.promise()
     .query("SELECT id FROM role WHERE title = ?", [input])
@@ -54,19 +76,8 @@ const getRoleId = (input) => {
       return null;
     });
 };
-const getManagerNames = () => {
-  return db.promise()
-    .query("SELECT first_name, last_name FROM employee WHERE manager_id IS NULL")
-    .then(([rows]) => {
-      const managers = rows.map((row) => `${row.first_name} ${row.last_name}`);
-      return managers;
-    })
-    .catch((error) => {
-      console.error("An error occurred while retrieving manager names:", error);
-      return [];
-    });
-};
-const getManagerId = (firstName, lastName) => {
+const getManagerId = (fullName) => {
+  const [firstName, lastName] = fullName.split(' ');
   return db.promise()
     .query("SELECT id FROM employee WHERE first_name = ? AND last_name = ?", [firstName, lastName])
     .then(([rows]) => {
@@ -77,6 +88,7 @@ const getManagerId = (firstName, lastName) => {
       }
     });
 };
+
 
 const options = {
   "View all departments": () => {
@@ -244,8 +256,8 @@ const options = {
         },
       ]);
 
-      const roleId = getRoleId(answers.role);
-      const managerId = getManagerId(answers.manager);
+      const roleId = await getRoleId(answers.role);
+      const managerId = await getManagerId(answers.manager);
 
       if (roleId) {
         const response = await db.promise().query(
@@ -289,8 +301,14 @@ const options = {
         },
       ]);
 
+      const doesEmployeeExist = await employeeExists(answers.firstName, answers.lastName);
+      if (!doesEmployeeExist) {
+        console.log("\n 🔍 Employee does not exist. Please try again. 🔎 \n");
+        backToMainMenu();
+        return;
+      }
+      
       const roleId = await getRoleId(answers.newRole);
-
       if (roleId) {
         await db.promise().query(
           `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`,
@@ -328,6 +346,12 @@ const options = {
           choices: managerNames,
         },
       ]);
+      const doesEmployeeExist = await employeeExists(answers.firstName, answers.lastName);
+      if (!doesEmployeeExist) {
+        console.log("\n 🔍 Employee does not exist. Please try again. 🔎 \n");
+        backToMainMenu();
+        return;
+      }
 
       const managerId = await getManagerId(answers.manager);
 
@@ -365,7 +389,7 @@ const options = {
       })
   },
 };
-
+// fun display on startup
 function welcomeBanner() {
   console.log(`
      __   __   __   __   __   __   __   __   __   __   __   __   __   __   __   ___
