@@ -89,7 +89,6 @@ const getManagerId = (fullName) => {
     });
 };
 
-
 const options = {
   "View all departments": () => {
     db.promise()
