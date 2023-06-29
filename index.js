@@ -58,8 +58,8 @@ const getManagerNames = () => {
   return db.promise()
     .query("SELECT first_name, last_name FROM employee WHERE manager_id IS NULL")
     .then(([rows]) => {
-      const managerNames = rows.map((row) => row.name);
-      return managerNames;
+      const managers = rows.map((row) => `${row.first_name} ${row.last_name}`);
+      return managers;
     })
     .catch((error) => {
       console.error("An error occurred while retrieving manager names:", error);
@@ -427,7 +427,7 @@ function init() {
           "Add a role",
           "Add an employee",
           "Update an employee role",
-          "Update employee's manager",
+          "Update employee's manager or change to manager status",
           "Quit",
         ],
       },
