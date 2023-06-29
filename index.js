@@ -89,6 +89,7 @@ const getManagerId = (fullName) => {
     });
 };
 
+//displays options available to the user
 const options = {
   "View all departments": () => {
     db.promise()
@@ -228,7 +229,7 @@ const options = {
       // prompt employee first name, last name, role, manager (if applicable)
       const roleNames = await getRoleNames();
       const managerNames = await getManagerNames();
-
+      managerNames.unshift('NONE or is a manager');
       const answers = await inquirer.prompt([
         {
           name: "firstName",
@@ -250,14 +251,18 @@ const options = {
           name: "manager",
           type: "list",
           message:
-            "Finally, who is the employee's manager? If no manager, please hit enter.",
+            "Finally, who is the employee's manager? If no manager, please select NONE.",
           choices: managerNames,
         },
       ]);
 
       const roleId = await getRoleId(answers.role);
-      const managerId = await getManagerId(answers.manager);
-
+      let managerId;
+      if (answers.manager === 'NONE or is a manager') {
+        managerId = null;
+      } else {
+        managerId = await getManagerId(answers.manager);
+      }
       if (roleId) {
         const response = await db.promise().query(
           "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)",
@@ -306,7 +311,7 @@ const options = {
         backToMainMenu();
         return;
       }
-      
+
       const roleId = await getRoleId(answers.newRole);
       if (roleId) {
         await db.promise().query(
@@ -326,6 +331,7 @@ const options = {
   "Update employee's manager or change to manager status": async () => {
     try {
       const managerNames = await getManagerNames();
+      managerNames.unshift("NONE or is the manager")
       const answers = await inquirer.prompt([
         {
           name: "firstName",
@@ -341,7 +347,7 @@ const options = {
           name: "manager",
           type: "list",
           message:
-            "If the employee is a manager, please select null. Otherwise, choose a manager for this employee.",
+            "If the employee is a manager, please select NONE. Otherwise, choose a manager for this employee.",
           choices: managerNames,
         },
       ]);
@@ -352,17 +358,20 @@ const options = {
         return;
       }
 
-      const managerId = await getManagerId(answers.manager);
-
-      if (managerId) {
-        await db.promise().query(
-          "UPDATE employee SET manager_id = ? WHERE first_name = ? AND last_name = ?",
-          [managerId, answers.firstName, answers.lastName]
-        );
-
-        console.log("\n 💥 Manager updated! 💥 \n");
-        backToMainMenu();
+      let managerId;
+      if (answers.manager === 'NONE or is a manager') {
+        managerId = null; // Assign null value
+      } else {
+        managerId = await getManagerId(answers.manager); // Assign the actual managerId
       }
+
+      await db.promise().query(
+        "UPDATE employee SET manager_id = ? WHERE first_name = ? AND last_name = ?",
+        [managerId, answers.firstName, answers.lastName]
+      );
+
+      console.log("\n 💥 Manager updated! 💥 \n");
+      backToMainMenu();
     } catch (error) {
       console.error("An error occurred while updating the manager:", error);
       console.log("Failed to update the manager. Please try again.");
@@ -379,15 +388,20 @@ const options = {
         },
       ])
       .then((answer) => {
-        if (answer.confirmExit) return process.exit();
+        if (answer.confirmExit) {
+          process.exit();
+        } else {
+          backToMainMenu();
+        }
       })
       .catch((error) => {
         console.error("An error occurred while trying to exit:", error);
         console.log("Failed to exit. Returning to the Main Menu.");
         backToMainMenu();
-      })
+      });
   },
 };
+
 // fun display on startup
 function welcomeBanner() {
   console.log(`
