@@ -2,7 +2,7 @@
 
 ## Description
 
-I wanted to build an application that, though it is to be used in the command line, would provide a easy user experience. This application provides a simple way to look through company records and manipulate the data stored therein, and it should help any HR department easily sort through and update records. Whenever possible, the user is guided through the application with helpful prompts and listed options. On possibly larger datasets, like the employee table, the user can enter the employee's name instead of searching through a huge list, and a simple check will make sure they exist before any data is changed. Any non-technical person should feel comfortable using this application!
+I wanted to build an application that, though it is to be used in the command line, would provide an easy user experience. This application provides a simple way to look through company records and manipulate the data stored therein, and it should help any HR department easily sort through and update records. Whenever possible, the user is guided through the application with helpful prompts and listed options. On possibly larger datasets, like the employee table, the user can enter the employee's name instead of searching through a huge list, and a simple check will make sure they exist before any data is changed. Any non-technical person should feel comfortable using this application!
 
 One of the most important things learned by building this application is that every move of the user needs to be explored. This mindset is critical when creating applications geared towards good user experience. Even when the code is well-written, actual testing is important! 
 
